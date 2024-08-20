@@ -119,7 +119,7 @@ func (c *Consumer) doHandle(ctx context.Context, msg *nats.Msg) error {
 
 	dispatchExecutionInfo, err := SendMessage(
 		c.dispatcher,
-		ctx,
+		c.ctx,
 		message,
 		c.sub.Subscriber,
 		c.natsConsumerInfo.Config.AckWait,
