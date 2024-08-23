@@ -341,8 +341,10 @@ func (d *Dispatcher) messageReceiver(ctx context.Context, ch eventingchannels.Ch
 	logger.Debugw("received message from HTTP receiver")
 
 	eventID := commonce.IDExtractorTransformer("")
+	eventSource := commonce.SourceExtractorTransformer("")
+	eventSubject := commonce.SubjectExtractorTransformer("")
 
-	transformers := append([]binding.Transformer{&eventID},
+	transformers := append([]binding.Transformer{&eventID, &eventSource, &eventSubject},
 		tracing.SerializeTraceTransformers(trace.FromContext(ctx).SpanContext())...,
 	)
 
@@ -358,7 +360,17 @@ func (d *Dispatcher) messageReceiver(ctx context.Context, ch eventingchannels.Ch
 
 	// publish the message, passing the cloudevents ID as the MsgId so that we can benefit from detecting duplicate
 	// messages
-	_, err := d.js.Publish(subject, writer.Bytes(), nats.MsgId(string(eventID)))
+    _, err := d.js.PublishMsg(&nats.Msg{
+        //Data:    []byte("omg"),
+        Data:    writer.Bytes(),
+        Subject: subject,
+        Header: nats.Header{
+            "Nats-Msg-Id": []string{string(eventID)}, 
+            "CE-Source": []string{string(eventSource)},
+            "CE-Subject": []string{string(eventSubject)},
+        },
+    })
+	//_, err := d.js.Publish(subject, writer.Bytes(), nats.MsgId(string(eventID)), nats.Header{"source": []string{"bebebe"}})
 	if err != nil {
 		logger.Errorw("failed to publish message", zap.Error(err))
 		return err
