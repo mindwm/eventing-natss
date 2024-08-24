@@ -363,6 +363,7 @@ func (d *Dispatcher) messageReceiver(ctx context.Context, ch eventingchannels.Ch
 
     headers := make(nats.Header)
     headers["traceparent"] = []string{eventTraceParent}
+    headers["Nats-Msg-Id"] = []string{eventSpecFields["ce-id"]}
     for k,v := range eventSpecFields {
       headers[k] = []string{v}
     }
