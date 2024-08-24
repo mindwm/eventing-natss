@@ -372,6 +372,7 @@ func (d *Dispatcher) messageReceiver(ctx context.Context, ch eventingchannels.Ch
         Data:    writer.Bytes(),
         Subject: subject,
         Header: nats.Header{
+            "ce-id": []string{string(eventID)},
             "Nats-Msg-Id": []string{string(eventID)}, 
             "ce-specversion": []string{string(eventSpecVersion)},
             "ce-source": []string{string(eventSource)},
