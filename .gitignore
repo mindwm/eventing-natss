@@ -7,3 +7,5 @@ cover.out
 bin/
 *.swp
 .history
+eventing-jsm.yaml
+eventing-natss.yaml

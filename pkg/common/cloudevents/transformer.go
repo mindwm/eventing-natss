@@ -17,6 +17,7 @@ limitations under the License.
 package cloudevents
 
 import (
+    "fmt"
 	"github.com/cloudevents/sdk-go/v2/binding"
 	"github.com/cloudevents/sdk-go/v2/binding/spec"
 	"github.com/cloudevents/sdk-go/v2/types"
@@ -25,44 +26,49 @@ import (
 // IDExtractorTransformer implements binding.Transformer. Upon the execution of the transformer, the underlying value
 // is updated to be event ID.
 type IDExtractorTransformer string
-type SourceExtractorTransformer string
-type SubjectExtractorTransformer string
+type CloudeventExtractorTransformer map[string]string
+
 
 func (a *IDExtractorTransformer) Transform(reader binding.MessageMetadataReader, _ binding.MessageMetadataWriter) error {
-	_, ty := reader.GetAttribute(spec.ID)
-	if ty != nil {
-		tyParsed, err := types.ToString(ty)
-		if err != nil {
-			return err
-		}
-		*a = IDExtractorTransformer(tyParsed)
-	}
+       _, ty := reader.GetAttribute(spec.ID)
+       if ty != nil {
+               tyParsed, err := types.ToString(ty)
+               if err != nil {
+                       return err
+               }
+               *a = IDExtractorTransformer(tyParsed)
+       }
 
-	return nil
+       return nil
 }
 
-func (a *SourceExtractorTransformer) Transform(reader binding.MessageMetadataReader, _ binding.MessageMetadataWriter) error {
-	_, ty := reader.GetAttribute(spec.Source)
-	if ty != nil {
-		tyParsed, err := types.ToString(ty)
-		if err != nil {
-			return err
-		}
-		*a = SourceExtractorTransformer(tyParsed)
-	}
 
-	return nil
-}
+func (a *CloudeventExtractorTransformer) Transform(reader binding.MessageMetadataReader, _ binding.MessageMetadataWriter) error {
+    spec_fields := []spec.Kind{
+        spec.ID,
+        spec.Source,
+        spec.SpecVersion,
+        spec.Type,
+        spec.DataContentType,
+        spec.DataSchema,
+        spec.Subject,
+        spec.Time,
+    }
+    // fetch extensions
+    // TODO: (@omgbebebe) dunno how to get list of event extensions...
 
-func (a *SubjectExtractorTransformer) Transform(reader binding.MessageMetadataReader, _ binding.MessageMetadataWriter) error {
-	_, ty := reader.GetAttribute(spec.Subject)
-	if ty != nil {
-		tyParsed, err := types.ToString(ty)
-		if err != nil {
-			return err
-		}
-		*a = SubjectExtractorTransformer(tyParsed)
-	}
+    // fetch spec
+    for _, f := range spec_fields {
+	    _, ty := reader.GetAttribute(f)
+	    if ty != nil {
+		    tyParsed, err := types.ToString(ty)
+		    if err != nil {
+			    return err
+		    }
+            (*a)[fmt.Sprintf("ce-%s", f.String())] = tyParsed
+        }
+    }
+
 
 	return nil
 }

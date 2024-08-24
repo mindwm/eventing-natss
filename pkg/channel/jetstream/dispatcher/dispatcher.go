@@ -340,11 +340,10 @@ func (d *Dispatcher) messageReceiver(ctx context.Context, ch eventingchannels.Ch
 	logger := logging.FromContext(ctx)
 	logger.Debugw("received message from HTTP receiver")
 
-	eventID := commonce.IDExtractorTransformer("")
-	eventSource := commonce.SourceExtractorTransformer("")
-	eventSubject := commonce.SubjectExtractorTransformer("")
+    eventID := commonce.IDExtractorTransformer("")
+    eventSpecFields :=  commonce.CloudeventExtractorTransformer(make(map[string]string))
 
-	transformers := append([]binding.Transformer{&eventID, &eventSource, &eventSubject},
+    transformers := append([]binding.Transformer{&eventID, &eventSpecFields},
 		tracing.SerializeTraceTransformers(trace.FromContext(ctx).SpanContext())...,
 	)
 
@@ -358,19 +357,22 @@ func (d *Dispatcher) messageReceiver(ctx context.Context, ch eventingchannels.Ch
 	logger = logger.With(zap.String("msg_id", string(eventID)))
 	logger.Debugw("parsed message into JetStream encoding, publishing to subject", zap.String("subj", subject))
 
+    eventTraceSpan := trace.FromContext(ctx).SpanContext()
+    //TODO (@metacoma) proper way to generate traceparent cloudevent extension
+    eventTraceParent := fmt.Sprintf("%s-%s-%s-%s", "00", eventTraceSpan.TraceID.String(), eventTraceSpan.SpanID.String(), "01")
+
+    headers := make(nats.Header)
+    headers["traceparent"] = []string{eventTraceParent}
+    for k,v := range eventSpecFields {
+      headers[k] = []string{v}
+    }
 	// publish the message, passing the cloudevents ID as the MsgId so that we can benefit from detecting duplicate
 	// messages
     _, err := d.js.PublishMsg(&nats.Msg{
-        //Data:    []byte("omg"),
         Data:    writer.Bytes(),
         Subject: subject,
-        Header: nats.Header{
-            "Nats-Msg-Id": []string{string(eventID)}, 
-            "CE-Source": []string{string(eventSource)},
-            "CE-Subject": []string{string(eventSubject)},
-        },
+        Header: headers,
     })
-	//_, err := d.js.Publish(subject, writer.Bytes(), nats.MsgId(string(eventID)), nats.Header{"source": []string{"bebebe"}})
 	if err != nil {
 		logger.Errorw("failed to publish message", zap.Error(err))
 		return err
