@@ -27,6 +27,8 @@ import (
 type IDExtractorTransformer string
 type SourceExtractorTransformer string
 type SubjectExtractorTransformer string
+type TypeExtractorTransformer string
+type SpecVersionExtractorTransformer string
 
 func (a *IDExtractorTransformer) Transform(reader binding.MessageMetadataReader, _ binding.MessageMetadataWriter) error {
 	_, ty := reader.GetAttribute(spec.ID)
@@ -66,3 +68,31 @@ func (a *SubjectExtractorTransformer) Transform(reader binding.MessageMetadataRe
 
 	return nil
 }
+
+func (a *TypeExtractorTransformer) Transform(reader binding.MessageMetadataReader, _ binding.MessageMetadataWriter) error {
+	_, ty := reader.GetAttribute(spec.Type)
+	if ty != nil {
+		tyParsed, err := types.ToString(ty)
+		if err != nil {
+			return err
+		}
+		*a = TypeExtractorTransformer(tyParsed)
+	}
+
+	return nil
+}
+
+func (a *SpecVersionExtractorTransformer) Transform(reader binding.MessageMetadataReader, _ binding.MessageMetadataWriter) error {
+	_, ty := reader.GetAttribute(spec.SpecVersion)
+	if ty != nil {
+		tyParsed, err := types.ToString(ty)
+		if err != nil {
+			return err
+		}
+		*a = SpecVersionExtractorTransformer(tyParsed)
+	}
+
+	return nil
+}
+
+

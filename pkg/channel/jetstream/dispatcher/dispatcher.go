@@ -338,13 +338,20 @@ func (d *Dispatcher) messageReceiver(ctx context.Context, ch eventingchannels.Ch
 	message := binding.ToMessage(&event)
 
 	logger := logging.FromContext(ctx)
-	logger.Debugw("received message from HTTP receiver")
+
+	//logger.Errorw("YYY42 received message from HTTP receiver %s", event.Context.String())
 
 	eventID := commonce.IDExtractorTransformer("")
 	eventSource := commonce.SourceExtractorTransformer("")
 	eventSubject := commonce.SubjectExtractorTransformer("")
+	eventSpecVersion := commonce.SpecVersionExtractorTransformer("")
+	eventType := commonce.TypeExtractorTransformer("")
 
-	transformers := append([]binding.Transformer{&eventID, &eventSource, &eventSubject},
+  eventTraceSpan := trace.FromContext(ctx).SpanContext()
+  //TODO (@metacoma) proper way to generate traceparent cloudevent extension
+  eventTraceParent := fmt.Sprintf("%s-%s-%s-%s", "00", eventTraceSpan.TraceID.String(), eventTraceSpan.SpanID.String(), "01")
+
+	transformers := append([]binding.Transformer{&eventID, &eventSource, &eventSubject, &eventType, &eventSpecVersion},
 		tracing.SerializeTraceTransformers(trace.FromContext(ctx).SpanContext())...,
 	)
 
@@ -366,11 +373,13 @@ func (d *Dispatcher) messageReceiver(ctx context.Context, ch eventingchannels.Ch
         Subject: subject,
         Header: nats.Header{
             "Nats-Msg-Id": []string{string(eventID)}, 
-            "CE-Source": []string{string(eventSource)},
-            "CE-Subject": []string{string(eventSubject)},
+            "ce-specversion": []string{string(eventSpecVersion)},
+            "ce-source": []string{string(eventSource)},
+            "ce-subject": []string{string(eventSubject)},
+            "ce-type": []string{string(eventType)},
+            "ce-traceparent": []string{string(eventTraceParent)},
         },
     })
-	//_, err := d.js.Publish(subject, writer.Bytes(), nats.MsgId(string(eventID)), nats.Header{"source": []string{"bebebe"}})
 	if err != nil {
 		logger.Errorw("failed to publish message", zap.Error(err))
 		return err
