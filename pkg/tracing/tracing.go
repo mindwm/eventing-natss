@@ -81,7 +81,7 @@ func ConvertNatssMsgToEvent(logger *zap.Logger, msg *stan.Msg) *event.Event {
 	if msg == nil || msg.Data == nil {
 		return &message
 	}
-	if err := json.Unmarshal(msg.Data, &message); err != nil {
+	if err := json.Unmarshal(msg.Data, &msg); err != nil {
 		logger.Error("could not create an event from stan msg", zap.Error(err))
 		return &message
 	}
@@ -94,7 +94,7 @@ func ConvertNatsMsgToEvent(logger *zap.Logger, msg *nats.Msg) *event.Event {
 	if msg == nil || msg.Data == nil {
 		return &message
 	}
-	err := json.Unmarshal(msg.Data, &message)
+	err := json.Unmarshal(msg.Data, &msg)
 	if err != nil {
 		logger.Error("could not create an event from nats msg", zap.Error(err))
 		return &message
